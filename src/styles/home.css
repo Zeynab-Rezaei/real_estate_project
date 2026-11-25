@@ -2,16 +2,30 @@
    Homepage sections
    ============================================================ */
 
-/* ---------- Hero ---------- */
+/* ---------- Hero: scroll-scrubbed cinematic stage ---------- */
 
 .hero {
   position: relative;
+  /* Scroll runway. The stage stays pinned for this whole track; scroll
+     progress through it maps 1:1 onto the clip timeline. */
+  height: 320vh;
+  background: var(--navy-950);
+}
+
+/* Reduced motion / data saver: one static frame, no runway. */
+.hero--static {
+  height: 100vh;
+}
+
+.hero__stage {
+  position: sticky;
+  top: 0;
   display: grid;
   align-items: center;
-  min-height: min(100svh, 940px);
+  height: 100vh;
   overflow: hidden;
-  background: var(--navy-900);
   isolation: isolate;
+  background: var(--navy-950);
 }
 
 .hero__media {
@@ -20,38 +34,68 @@
   z-index: -2;
 }
 
+.hero__video,
+.hero__poster,
 .hero__img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 55%;
+  object-position: center 50%;
+}
+
+.hero__video {
+  opacity: 0;
+  transform: translateZ(0);
+  transition: opacity 0.9s var(--ease);
+}
+
+.hero__stage[data-state='ready'] .hero__video {
+  opacity: 1;
+}
+
+.hero__stage[data-state='error'] .hero__video,
+.hero__stage[data-state='error'] .hero__poster {
+  opacity: 0;
+}
+
+.hero__img {
   animation: heroZoom 2.2s var(--ease-out) both;
 }
 
+/* Deliberately light — the clip stays the subject; the scrim only buys
+   legibility for the headline and the fixed navigation. */
 .hero__scrim {
   position: absolute;
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(120% 70% at 50% 0%, rgba(6, 10, 22, 0.5) 0%, rgba(6, 10, 22, 0) 60%),
+    radial-gradient(64% 48% at 50% 42%, rgba(6, 10, 22, 0.38) 0%, rgba(6, 10, 22, 0) 72%),
     linear-gradient(
       180deg,
-      rgba(6, 10, 22, 0.62) 0%,
-      rgba(6, 10, 22, 0.32) 32%,
-      rgba(6, 10, 22, 0.22) 55%,
-      rgba(6, 10, 22, 0.66) 100%
+      rgba(6, 10, 22, 0.58) 0%,
+      rgba(6, 10, 22, 0.12) 24%,
+      rgba(6, 10, 22, 0) 46%,
+      rgba(6, 10, 22, 0.5) 100%
     );
 }
 
 .hero__content {
   position: relative;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: clamp(18px, 2.2vw, 26px);
+  justify-content: center;
   padding-top: calc(var(--header-h) + 40px);
   padding-bottom: clamp(88px, 12vh, 140px);
   text-align: center;
+}
+
+.hero__copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(18px, 2.2vw, 26px);
+  will-change: opacity, transform;
 }
 
 .hero__title {
@@ -106,9 +150,93 @@
   animation: scrollLine 2.6s ease-in-out infinite;
 }
 
+/* Minimal, premium loading treatment: a hairline that fills while the clip is
+   fetched. Never a spinner, never a blank black frame — the poster sits behind. */
+.hero__loader {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(104px, 14vh, 160px);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+  transition:
+    opacity 0.6s var(--ease),
+    visibility 0.6s;
+}
+
+.hero__loader-track {
+  display: block;
+  width: 92px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.22);
+  overflow: hidden;
+}
+
+.hero__loader-bar {
+  display: block;
+  height: 100%;
+  background: var(--champagne);
+  transform: scaleX(var(--loaded, 0.08));
+  transform-origin: left center;
+  transition: transform 0.3s linear;
+}
+
+.hero__loader-label {
+  font-size: 0.5625rem;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.hero__stage[data-state='ready'] .hero__loader,
+.hero__stage[data-state='error'] .hero__loader {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Hairline timeline across the bottom of the stage. */
+.hero__rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.hero__rail-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(197, 160, 89, 0.35), var(--champagne));
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+/* The stage owns the first screen: keep the header transparent while it is
+   pinned and let it turn solid exactly when it unpins. The flag is set by the
+   hero scrubber, so every other page keeps the normal header behaviour. */
+html[data-hero-pinned='true'] .header--solid {
+  background: transparent;
+  color: #fff;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+html[data-hero-pinned='true'] .header--solid::after {
+  background: rgba(255, 255, 255, 0.14);
+}
+
 @media (max-width: 767px) {
   .hero {
-    min-height: 88svh;
+    height: 300vh;
+  }
+
+  .hero--static {
+    height: 100vh;
   }
 
   .hero__content {
@@ -122,6 +250,15 @@
 
   .hero__scroll span {
     height: 30px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero__title,
+  .hero__sub,
+  .hero__img,
+  .hero__scroll span {
+    animation: none;
   }
 }
 
